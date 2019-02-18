@@ -1,0 +1,11 @@
+dist: xenial
+language: python
+cache: pip
+branches:
+  only:
+  - /^\d+\.\d+\.\d+$/
+script:
+  - python setup.py sdist
+  - twine upload dist/*.tar.gz
+before_script:
+  - pip install -U twine setuptools
