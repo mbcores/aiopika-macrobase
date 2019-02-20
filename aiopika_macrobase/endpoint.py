@@ -34,8 +34,8 @@ class AiopikaResponse:
 
 class AiopikaEndpoint(Endpoint):
 
-    async def handle(self, driver, exchange: Exchange, message: IncomingMessage, *args, **kwargs):
-        return await self.method(driver, exchange, message, *args, **kwargs)
+    async def handle(self, exchange: Exchange, message: IncomingMessage, *args, **kwargs):
+        return await self.method(exchange, message, *args, **kwargs)
 
-    async def method(self, driver, exchange: Exchange, data=None, *args, **kwargs) -> AiopikaResponse:
+    async def method(self, exchange: Exchange, data=None, *args, **kwargs) -> AiopikaResponse:
         return AiopikaResponse(AiopikaResponseAction.nothing)
