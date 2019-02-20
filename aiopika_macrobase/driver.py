@@ -31,11 +31,11 @@ class AiopikaDriver(MacrobaseDriver):
         self._queue = None
         self._methods: List[Method] = []
 
-    def update_config(self, config_obj: ClassVar[AiopikaDriverConfig]):
+    def update_config(self, config: AiopikaDriverConfig):
         """
         Add aiopika driver config
         """
-        self.config.from_object(config_obj)
+        self.config.update(config)
 
     def add_methods(self, methods: List[Method]):
         self._methods.extend(methods)
