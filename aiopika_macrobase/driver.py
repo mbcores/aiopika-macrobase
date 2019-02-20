@@ -103,7 +103,7 @@ class AiopikaDriver(MacrobaseDriver):
             log.error(f'Message {message.correlation_id} don`t have implemented endpoint')
             raise exceptions.EndpointNotImplementedException
 
-        return await method.handler(exchange, message, data=data)
+        return await method.handler(self, exchange, message, data=data)
 
     async def _reply(self, exchange: Exchange, message: IncomingMessage, payload: dict):
         await exchange.publish(
