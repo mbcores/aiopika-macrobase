@@ -65,7 +65,7 @@ class AiopikaDriver(MacrobaseDriver):
 
     async def process_message(self, exchange: Exchange, message: IncomingMessage):
         async with message.process(ignore_processed=True):
-            log.error(f'Received message {message.correlation_id}')
+            log.info(f'Received message {message.correlation_id}')
 
             response = AiopikaResponse(AiopikaResponseAction.nothing)
 
