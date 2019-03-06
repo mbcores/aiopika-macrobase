@@ -3,8 +3,10 @@ from typing import List, Tuple, ClassVar
 from functools import partial
 
 from macrobase_driver.driver import MacrobaseDriver
+from macrobase_driver.hook import HookHandler
 
 from aiopika_macrobase.config import  AiopikaDriverConfig
+from aiopika_macrobase.hook import AiopikaHookNames
 from aiopika_macrobase.endpoint import AiopikaResponse, AiopikaResponseAction
 from aiopika_macrobase.method import Method
 from aiopika_macrobase import exceptions
@@ -21,14 +23,14 @@ log = get_logger('AiopikaDriver')
 
 class AiopikaDriver(MacrobaseDriver):
 
-    def __init__(self, name: str = None, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.name = name
         self.config = AiopikaDriverConfig()
         self._connection = None
         self._channel = None
         self._queue = None
+        self._hooks: Dict[AiopikaHookNames, List[HookHandler]] = {}
         self._methods: List[Method] = []
 
     def update_config(self, config: AiopikaDriverConfig):
@@ -36,6 +38,12 @@ class AiopikaDriver(MacrobaseDriver):
         Add aiopika driver config
         """
         self.config.update(config)
+
+    def add_hook(self, name: AiopikaHookNames, handler):
+        if name not in self._hooks:
+            self._hooks[name] = []
+
+        self._hooks[name].append(HookHandler(self, handler))
 
     def add_methods(self, methods: List[Method]):
         self._methods.extend(methods)
@@ -103,7 +111,7 @@ class AiopikaDriver(MacrobaseDriver):
             log.error(f'Message {message.correlation_id} don`t have implemented endpoint')
             raise exceptions.EndpointNotImplementedException
 
-        return await method.handler(exchange, message, data=data)
+        return await method.handler(self, exchange, message, data=data)
 
     async def _reply(self, exchange: Exchange, message: IncomingMessage, payload: dict):
         await exchange.publish(
@@ -148,11 +156,13 @@ class AiopikaDriver(MacrobaseDriver):
         super().run(*args, **kwargs)
 
         uvloop.install()
-        loop = asyncio.get_event_loop()
+        self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.before_server_start))
 
-        connection = loop.run_until_complete(self._serve(loop))
+        connection = self.loop.run_until_complete(self._serve(self.loop))
 
         try:
-            loop.run_forever()
+            self.loop.run_forever()
         finally:
-            loop.run_until_complete(connection.close())
+            self.loop.run_until_complete(connection.close())
+
+        self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.after_server_stop))
