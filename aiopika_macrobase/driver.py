@@ -159,13 +159,15 @@ class AiopikaDriver(MacrobaseDriver):
         super().run(*args, **kwargs)
 
         uvloop.install()
-        self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.before_server_start))
 
+        self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.before_server_start))
         connection = self.loop.run_until_complete(self._serve(self.loop))
 
         try:
             self.loop.run_forever()
-        finally:
+        except Exception as e:
             self.loop.run_until_complete(connection.close())
+            self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.after_server_stop))
+        finally:
+            self.loop.close()
 
-        self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.after_server_stop))
