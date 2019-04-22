@@ -26,6 +26,9 @@ class AiopikaDriver(MacrobaseDriver):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        if self.name is None:
+            self.name = 'AiopikaDriver'
+
         self.config = AiopikaDriverConfig()
         self._connection = None
         self._channel = None
