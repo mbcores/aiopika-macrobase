@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='aiopika_macrobase',
-    version='0.0.7',
+    version='0.0.8',
     packages=find_packages(),
     url='https://github.com/mbcores/aiopika-macrobase',
     license='MIT',
@@ -10,7 +10,7 @@ setup(
     author_email='alexey.shagaleev@yandex.ru',
     description='Aio-pika driver for macrobase framework',
     install_requires=[
-        'macrobase-driver>=0.0.8',
+        'macrobase-driver>=0.0.14',
         'aio-pika==5.2.2',
         'pamqp==2.1.0',
         'uvloop==0.12.1',
