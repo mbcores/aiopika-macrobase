@@ -1,41 +1,39 @@
-from enum import Enum
-
-from structlog import get_logger
+from .result import AiopikaResult
 
 from macrobase_driver.endpoint import Endpoint
 
-from aio_pika import IncomingMessage, Exchange
+from aio_pika import IncomingMessage
 
-
+from structlog import get_logger
 log = get_logger('AiopikaEndpoint')
 
 
-class AiopikaResponseAction(Enum):
-    nothing = 0
-    ack = 10
-    nack = 20
-    reject = 30
-
-
-class AiopikaResponse:
-
-    def __init__(self,
-                 action: AiopikaResponseAction,
-                 multiple: bool = False,
-                 requeue: bool = False,
-                 payload: dict = None,
-                 *args,
-                 **kwargs):
-        self.action = action
-        self.payload = payload
-        self.multiple = multiple
-        self.requeue = requeue
-
-
 class AiopikaEndpoint(Endpoint):
+    """
+    Endpoint class for process incoming messages and ack/nack/reject message
+    """
 
-    async def handle(self, driver, exchange: Exchange, message: IncomingMessage, *args, **kwargs):
-        return await self.method(driver, exchange, message, *args, **kwargs)
+    async def handle(self, driver, message: IncomingMessage, *args, **kwargs):
+        """
+        Handle method for process incoming message with identifier
 
-    async def method(self, driver, exchange: Exchange, data=None, *args, **kwargs) -> AiopikaResponse:
-        return AiopikaResponse(AiopikaResponseAction.nothing)
+        Args:
+            driver: Aiopika Macrobase driver
+            identifier(str): Identifier of messages
+            message (IncomingMessage): Incoming message from driver processing
+            *args: Additional arguments
+            **kwargs: Additional arguments with keys
+
+        Returns:
+            AiopikaResult: Aiopika result action or None  (if return None then driver ack message).
+        """
+        return await self.method(driver, message, *args, **kwargs)
+
+    async def method(self, driver, message: IncomingMessage, *args, **kwargs) -> AiopikaResult:
+        return AiopikaResult()
+
+
+class HealthEndpoint(AiopikaEndpoint):
+
+    async def method(self, driver, message: IncomingMessage, *args, **kwargs):
+        log.info('Health')
