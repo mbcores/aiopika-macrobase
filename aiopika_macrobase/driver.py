@@ -67,28 +67,31 @@ class AiopikaDriver(MacrobaseDriver):
         async with message.process(ignore_processed=self.config.IGNORE_PROCESSED):
             log.info(f'Message <IncomingMessage correlation_id: {message.correlation_id}> received')
 
-            method = self._router.route(message)
-            result = AiopikaResult()
+            await self._process_message(message)
 
-            try:
-                data = message.body
+    async def _process_message(self, message: IncomingMessage):
+        try:
+            result = await self._get_method_result(message, self._router.route(message))
+        except Exception as e:
+            requeue = e.requeue if isinstance(e, AiopikaException) else self.config.REQUEUE_IF_FAILED
 
-                try:
-                    if message.content_type is not None and len(message.content_type) != 0:
-                        data = deserialize(message.body, message.content_type)
-                except ContentTypeNotSupportedException as e:
-                    pass
+            log.error(e)
+            result = AiopikaResult(action=AiopikaResultAction.nack, requeue=requeue)
+            await self._process_result(message, result, ignore_reply=True)
+            return
 
-                result = await method.handler(self, message, data=data) or result
-            except Exception as e:
-                requeue = e.requeue if isinstance(e, AiopikaException) else self.config.REQUEUE_IF_FAILED
+        await self._process_result(message, result, ignore_reply=False)
 
-                log.error(e)
-                result = AiopikaResult(action=AiopikaResultAction.nack, requeue=requeue)
-                await self._process_result(message, result, ignore_reply=True)
-                return
+    async def _get_method_result(self, message: IncomingMessage, method: Method):
+        data = message.body
 
-            await self._process_result(message, result, ignore_reply=False)
+        try:
+            if message.content_type is not None and len(message.content_type) != 0:
+                data = deserialize(message.body, message.content_type)
+        except ContentTypeNotSupportedException as e:
+            pass
+
+        return await method.handler(self, message, data=data, identifier=method.identifier)
 
     async def _process_result(self, message: IncomingMessage, result: AiopikaResult, ignore_reply: bool = False):
         if result.requeue:
@@ -141,7 +144,7 @@ class AiopikaDriver(MacrobaseDriver):
         return self._connection
 
     async def _prepare(self):
-        log.debug(f'Route <{self.router_cls.__name__}> initialize')
+        log.debug(f'Router <{self.router_cls.__name__}> initialize')
         self._router = self.router_cls(self._methods)
 
     def run(self, *args, **kwargs):
@@ -160,7 +163,8 @@ class AiopikaDriver(MacrobaseDriver):
         except Exception as e:
             if connection is not None:
                 self.loop.run_until_complete(connection.close())
-
-            self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.after_server_stop))
         finally:
+            self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.after_server_stop))
             self.loop.close()
+
+

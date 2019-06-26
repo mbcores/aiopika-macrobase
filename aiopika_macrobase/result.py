@@ -1,6 +1,6 @@
 from enum import Enum, IntEnum
 
-from .serializers import serialize, SerializeFailedException, ContentTypeNotSupportedException
+from .serializers import serialize, SerializeFailedException, PayloadTypeNotSupportedException
 
 from aio_pika.message import Message, DateType, DeliveryMode
 
@@ -22,7 +22,7 @@ class AiopikaResult(object):
 
     def __init__(self, action: AiopikaResultAction = AiopikaResultAction.ack,
                  multiple: bool = False, requeue: bool = False,
-                 payload = None, headers: dict = None,
+                 payload=None, headers: dict = None,
                  content_type: str = None, content_encoding: str = None,
                  delivery_mode: DeliveryMode = None,
                  priority: int = None, correlation_id=None,
@@ -73,29 +73,45 @@ class AiopikaResult(object):
         self.user_id: str = user_id
         self.app_id: str = app_id
 
-    def get_response_message(self) -> Message:
+    def get_response_message(self, headers: dict = None,
+                             content_type: str = None, content_encoding: str = None,
+                             delivery_mode: DeliveryMode = None,
+                             priority: int = None, correlation_id=None,
+                             reply_to: str = None, expiration: DateType = None,
+                             message_id: str = None,
+                             timestamp: DateType = None,
+                             type: str = None, user_id: str = None,
+                             app_id: str = None) -> Message:
         body = ''
-        content_type = ''
+        _content_type = ''
 
         try:
-            body, content_type = serialize(self.payload)
-        except (ContentTypeNotSupportedException, SerializeFailedException) as e:
+            body, _content_type = serialize(self.payload)
+        except (PayloadTypeNotSupportedException, SerializeFailedException) as e:
             pass
+
+        _headers = self.headers
+
+        if headers is not None:
+            if _headers is None:
+                _headers = headers
+            else:
+                _headers.update(headers)
 
         return Message(
             body,
-            content_type=content_type or self.content_type,
-            content_encoding=self.content_encoding,
+            content_type=content_type or _content_type or self.content_type,
+            content_encoding=content_encoding or self.content_encoding,
 
-            headers=self.headers,
-            delivery_mode=self.delivery_mode,
-            priority=self.priority,
-            correlation_id=self.correlation_id,
-            reply_to=self.reply_to,
-            expiration=self.expiration,
-            message_id=self.message_id,
-            timestamp=self.timestamp,
-            type=self.type,
-            user_id=self.user_id,
-            app_id=self.app_id
+            headers=_headers,
+            delivery_mode=delivery_mode or self.delivery_mode,
+            priority=priority or self.priority,
+            correlation_id=correlation_id or self.correlation_id,
+            reply_to=reply_to or self.reply_to,
+            expiration=expiration or self.expiration,
+            message_id=message_id or self.message_id,
+            timestamp=timestamp or self.timestamp,
+            type=type or self.type,
+            user_id=user_id or self.user_id,
+            app_id=app_id or self.app_id
         )

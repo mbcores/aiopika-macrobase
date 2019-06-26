@@ -25,7 +25,7 @@ class Router(ABC):
         Returns:
             Method: Routed method
         """
-        method = self._get_method_identifier(message)
+        method = self.get_method_identifier(message)
 
         if method is None:
             raise IncomingRoutingFailedException
@@ -35,8 +35,9 @@ class Router(ABC):
 
         return self._methods[method]
 
+    @staticmethod
     @abstractmethod
-    def _get_method_identifier(self, message: IncomingMessage) -> str:
+    def get_method_identifier(message: IncomingMessage) -> str:
         """
         Function for getting method identifier from incoming message
 
@@ -54,5 +55,6 @@ class HeaderMethodRouter(Router):
     The router by method identifier in `method` header of message.
     """
 
-    def _get_method_identifier(self, message: IncomingMessage) -> str:
+    @staticmethod
+    def get_method_identifier(message: IncomingMessage) -> str:
         return message.headers.get('method', None)

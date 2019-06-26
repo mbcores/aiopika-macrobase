@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Type, Tuple
 
-from .exceptions import SerializeFailedException, DeserializeFailedException, ContentTypeNotSupportedException
+from .exceptions import SerializeFailedException, DeserializeFailedException, ContentTypeNotSupportedException, \
+    PayloadTypeNotSupportedException
 
 import pickle
 import rapidjson
@@ -71,7 +72,7 @@ def serialize(value) -> Tuple[bytes, str]:
 
     if serializer is None:
         # TODO: add more info about value (short desc) and his type
-        raise ContentTypeNotSupportedException
+        raise PayloadTypeNotSupportedException
 
     try:
         return serializer.serialize(value), serializer.content_type
