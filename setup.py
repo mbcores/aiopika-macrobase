@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='aiopika_macrobase',
-    version='0.0.9',
+    version='0.0.10',
     packages=find_packages(),
     url='https://github.com/mbcores/aiopika-macrobase',
     license='MIT',
