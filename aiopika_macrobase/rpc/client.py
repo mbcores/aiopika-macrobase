@@ -9,7 +9,8 @@ from ..router import Router, HeaderMethodRouter
 from ..serializers import serialize, deserialize, PayloadTypeNotSupportedException, SerializeFailedException,\
     DeserializeFailedException, ContentTypeNotSupportedException
 from ..exceptions import AiopikaException
-from .exceptions import PublishMessageException, DeliveryException, MessageTimeoutException, ExternalException
+from .exceptions import PublishMessageException, DeliveryException, MessageTimeoutException, ExternalException,\
+    ReceiveMessageException
 
 from aio_pika import connect_robust, Connection, Channel, IncomingMessage, Message, Exchange, Queue, ExchangeType
 from aio_pika.message import DeliveredMessage
@@ -192,12 +193,15 @@ class AiopikaClient(object):
 
             future = self._futures.pop(message.correlation_id)
 
-            response = response_from_raw(message.body, message.content_type, message.type)
+            try:
+                response = response_from_raw(message.body, message.content_type, message.type)
 
-            if response.type == RPCMessageType.result:
-                future.set_result(response.payload)
-            elif response.type == RPCMessageType.error:
-                future.set_exception(response.payload)
+                if response.type == RPCMessageType.result:
+                    future.set_result(response.payload)
+                elif response.type == RPCMessageType.error:
+                    future.set_exception(response.payload)
+            except (DeserializeFailedException, ContentTypeNotSupportedException) as e:
+                future.set_exception(ReceiveMessageException(message.correlation_id, message.routing_key, message.type))
 
             await message.ack()
 

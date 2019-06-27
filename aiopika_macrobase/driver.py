@@ -166,5 +166,3 @@ class AiopikaDriver(MacrobaseDriver):
         finally:
             self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.after_server_stop))
             self.loop.close()
-
-

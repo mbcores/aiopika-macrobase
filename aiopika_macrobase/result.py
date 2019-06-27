@@ -73,7 +73,7 @@ class AiopikaResult(object):
         self.user_id: str = user_id
         self.app_id: str = app_id
 
-    def get_response_message(self, headers: dict = None,
+    def get_response_message(self, payload=None, headers: dict = None,
                              content_type: str = None, content_encoding: str = None,
                              delivery_mode: DeliveryMode = None,
                              priority: int = None, correlation_id=None,
@@ -82,13 +82,13 @@ class AiopikaResult(object):
                              timestamp: DateType = None,
                              type: str = None, user_id: str = None,
                              app_id: str = None) -> Message:
-        body = ''
-        _content_type = ''
+        # body = ''.encode()
+        # _content_type = 'text/plain'
 
-        try:
-            body, _content_type = serialize(self.payload)
-        except (PayloadTypeNotSupportedException, SerializeFailedException) as e:
-            pass
+        # try:
+        body, _content_type = serialize(payload or self.payload)
+        # except (PayloadTypeNotSupportedException, SerializeFailedException) as e:
+        #     pass
 
         _headers = self.headers
 

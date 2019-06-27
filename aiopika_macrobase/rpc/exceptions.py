@@ -16,7 +16,20 @@ class PublishMessageException(AiopikaRPCException):
 class DeliveryException(AiopikaRPCException):
 
     def __init__(self, message: DeliveredMessage):
-        super(DeliveryException, self).__init__(f'<Exchange: {message.delivery.exchange} routing_key: {message.delivery.routing_key} code: {message.delivery.reply_code}> {message.delivery.reply_text}')
+        self.exchange = message.delivery.exchange
+        self.routing_key = message.delivery.routing_key
+        self.reply_code = message.delivery.reply_code
+        self.reply_text = message.delivery.reply_text
+
+        super(DeliveryException, self).__init__(
+            f'<Exchange: {self.exchange} routing_key: {self.routing_key} code: {self.reply_code}> {self.reply_text}'
+        )
+
+
+class ReceiveMessageException(AiopikaRPCException):
+
+    def __init__(self, correlation_id: str, routing_key: str, type: str):
+        super(ReceiveMessageException, self).__init__(f'<Message: {correlation_id} routing_key: {routing_key} type: {type}> Message fail receive')
 
 
 class MessageTimeoutException(AiopikaRPCException):
@@ -32,3 +45,9 @@ class ExternalException(AiopikaRPCException):
 
     def __init__(self, exception: Exception):
         super(ExternalException, self).__init__(str(exception))
+
+
+class ResponseContentException(AiopikaRPCException):
+    pass
+    # def __init__(self, correlation_id: str, routing_key: str):
+    #     super(ResponseContentException, self).__init__(f'<Message: {correlation_id} routing_key: {routing_key}> Message response not serialized')
