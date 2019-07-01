@@ -14,6 +14,10 @@ class ContentTypeNotSupportedException(AiopikaException):
     requeue = False
 
 
+class MethodNotFoundException(AiopikaException):
+    requeue = False
+
+
 class EndpointNotImplementedException(AiopikaException):
     pass
 

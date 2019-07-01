@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Dict
 
 from .method import Method
-from .exceptions import IncomingRoutingFailedException, EndpointNotImplementedException
+from .exceptions import IncomingRoutingFailedException, MethodNotFoundException
 
 from aio_pika import IncomingMessage
 
@@ -31,7 +31,7 @@ class Router(ABC):
             raise IncomingRoutingFailedException
 
         if method not in self._methods:
-            raise EndpointNotImplementedException
+            raise MethodNotFoundException
 
         return self._methods[method]
 

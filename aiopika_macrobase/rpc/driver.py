@@ -2,7 +2,7 @@ from .request import RPCResponse, RPCMessageType
 from .exceptions import ResponseContentException
 
 from ..driver import AiopikaDriver, IncomingMessage
-from ..router import HeaderMethodRouter, IncomingRoutingFailedException, EndpointNotImplementedException
+from ..router import HeaderMethodRouter, IncomingRoutingFailedException
 from ..result import AiopikaResult, AiopikaResultAction
 from ..exceptions import PayloadTypeNotSupportedException, SerializeFailedException, ResultDeliveryFailedException
 

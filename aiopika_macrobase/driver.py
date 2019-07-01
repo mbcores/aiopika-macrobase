@@ -11,7 +11,7 @@ from .method import Method
 from .router import Router, HeaderMethodRouter
 from .serializers import deserialize
 from .exceptions import AiopikaException, DeserializeFailedException, ContentTypeNotSupportedException,\
-    ResultDeliveryFailedException
+    ResultDeliveryFailedException, MethodNotFoundException
 
 import uvloop
 from aio_pika import connect_robust, Connection, IncomingMessage, Channel, Queue
@@ -72,6 +72,11 @@ class AiopikaDriver(MacrobaseDriver):
     async def _process_message(self, message: IncomingMessage):
         try:
             result = await self._get_method_result(message, self._router.route(message))
+        except MethodNotFoundException as e:
+            log.debug(f'Ignore unknown method')
+            result = AiopikaResult(action=AiopikaResultAction.nack, requeue=self.config.REQUEUE_UNKNOWN)
+            await self._process_result(message, result, ignore_reply=True)
+            return
         except Exception as e:
             requeue = e.requeue if isinstance(e, AiopikaException) else self.config.REQUEUE_IF_FAILED
 

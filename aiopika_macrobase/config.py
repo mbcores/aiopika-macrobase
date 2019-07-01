@@ -28,4 +28,5 @@ class AiopikaDriverConfig(DriverConfig):
     IGNORE_PROCESSED: bool = True
     REQUEUE_DELAY: int = 10
     DEFAULT_RETRY_DELAY: int = 60
+    REQUEUE_UNKNOWN: bool = False
     REQUEUE_IF_FAILED: bool = True  # TODO: Set `requeue` for all AiopikaException subclasses

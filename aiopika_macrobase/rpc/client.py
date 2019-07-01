@@ -10,7 +10,7 @@ from ..serializers import serialize, deserialize, PayloadTypeNotSupportedExcepti
     DeserializeFailedException, ContentTypeNotSupportedException
 from ..exceptions import AiopikaException
 from .exceptions import PublishMessageException, DeliveryException, MessageTimeoutException, ExternalException,\
-    ReceiveMessageException
+    ReceiveMessageException, ReplyNotSupportBroadcastException
 
 from aio_pika import connect_robust, Connection, Channel, IncomingMessage, Message, Exchange, Queue, ExchangeType
 from aio_pika.message import DeliveredMessage
@@ -27,12 +27,13 @@ class AsyncResult(object):
     #: Timeout for wait publish new message in broker
     rpc_wait_timeout = 60
 
-    def __init__(self, client, exchange: str, queue: str, identifier: str, correlation_id: str):
+    def __init__(self, client, exchange: str, queue: str, identifier: str, correlation_id: str, reply: bool = True):
         self._client = client
         self._exchange = exchange
         self._queue = queue
-        self._correlation_id = correlation_id
         self._identifier = identifier
+        self._correlation_id = correlation_id
+        self._reply = reply
 
     @property
     def exchange(self) -> str:
@@ -43,14 +44,21 @@ class AsyncResult(object):
         return self._queue
 
     @property
+    def identifier(self) -> str:
+        return self._identifier
+
+    @property
     def correlation_id(self) -> str:
         return self._correlation_id
 
     @property
-    def identifier(self) -> str:
-        return self._identifier
+    def reply(self) -> bool:
+        return self._reply
 
     async def wait(self, timeout: int = None):
+        if not self.reply:
+            raise ReplyNotSupportBroadcastException
+
         if timeout is None:
             timeout = self.rpc_wait_timeout
 
@@ -157,8 +165,8 @@ class AiopikaClient(object):
             await self._setup_callback_queue()
 
     async def close(self):
-        if self._callback_queue is not None:
-            await self._callback_queue.delete()
+        # if self._callback_queue is not None:
+        #     await self._callback_queue.delete()
 
         if self._channel is not None:
             await self._channel.close()
@@ -205,21 +213,17 @@ class AiopikaClient(object):
 
             await message.ack()
 
-    async def call(self, identifier: str, queue: str, payload=None,
-                   expires: DateType = None, *args, **kwargs) -> AsyncResult:
-        correlation_id = str(uuid.uuid4())
-
-        body, content_type = serialize(payload)
-
-        message = Message(
+    async def _get_message(self, body, content_type: str, type: str, correlation_id: str, identifier: str,
+                     reply_to: str = None, expiration: DateType = None) -> Message:
+        return Message(
             body=body,
             content_type=content_type,
-            type=RPCMessageType.call.value,
+            type=type,
 
             correlation_id=correlation_id,
-            reply_to=self._callback_queue_name,
+            reply_to=reply_to,
 
-            expiration=expires,
+            expiration=expiration,
 
             headers={
                 'lang': 'py',
@@ -237,20 +241,53 @@ class AiopikaClient(object):
             }
         )
 
+    async def _publish_message(self, message: Message, identifier: str, correlation_id: str,
+                               routing_key: str) -> DeliveredMessage:
         try:
             result: DeliveredMessage = await self._exchange.publish(
                 message=message,
-                routing_key=queue,
+                routing_key=routing_key,
                 timeout=self.publish_timeout
             )
 
             # TODO: except all error codes from: https://cwiki.apache.org/confluence/display/qpid/AMQP+Error+Codes#space-menu-link-content
             if isinstance(result, DeliveredMessage):
                 raise DeliveryException(result)
-        except TimeoutError as e:
-            raise PublishMessageException(queue, identifier, correlation_id)
 
-        return AsyncResult(self, self._channel.default_exchange.name, queue, identifier, correlation_id)
+            return result
+        except TimeoutError as e:
+            raise PublishMessageException(routing_key, identifier, correlation_id)
+
+    async def call(self, identifier: str, queue: str, payload=None, reply: bool = True,
+                   expires: DateType = None, *args, **kwargs) -> AsyncResult:
+        correlation_id = str(uuid.uuid4())
+        body, content_type = serialize(payload)
+
+        message = await self._get_message(
+            body=body,
+            content_type=content_type,
+            type=RPCMessageType.call.value,
+            correlation_id=correlation_id,
+            identifier=identifier,
+            reply_to=self._callback_queue_name if reply else None,
+            expiration=expires
+        )
+
+        await self._publish_message(
+            message=message,
+            identifier=identifier,
+            correlation_id=correlation_id,
+            routing_key=queue
+        )
+
+        return AsyncResult(
+            self,
+            self._channel.default_exchange.name,
+            queue,
+            identifier,
+            correlation_id,
+            reply=reply
+        )
 
     async def wait_result(self, result: AsyncResult, timeout: int = None):
         if self._callback_queue is None:

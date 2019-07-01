@@ -51,3 +51,7 @@ class ResponseContentException(AiopikaRPCException):
     pass
     # def __init__(self, correlation_id: str, routing_key: str):
     #     super(ResponseContentException, self).__init__(f'<Message: {correlation_id} routing_key: {routing_key}> Message response not serialized')
+
+
+class ReplyNotSupportBroadcastException(AiopikaRPCException):
+    pass
