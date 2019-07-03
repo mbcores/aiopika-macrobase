@@ -67,6 +67,8 @@ deserializers: Dict[str, Serializer] = {s.content_type: s for s in _serializers}
 
 
 def serialize(value) -> Tuple[bytes, str]:
+    value = value or ''
+    
     serializer = [s for s in _serializers if isinstance(value, s.input_type)]
     serializer = serializer[0] if serializer else None
 
