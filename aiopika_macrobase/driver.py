@@ -166,6 +166,7 @@ class AiopikaDriver(MacrobaseDriver):
             connection = self.loop.run_until_complete(self._serve(self.loop))
             self.loop.run_forever()
         except Exception as e:
+            log.error(e)
             if connection is not None:
                 self.loop.run_until_complete(connection.close())
         finally:
