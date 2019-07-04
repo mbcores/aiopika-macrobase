@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='aiopika_macrobase',
-    version='0.0.14',
+    version='0.0.15',
     packages=find_packages(),
     url='https://github.com/mbcores/aiopika-macrobase',
     license='MIT',
@@ -14,7 +14,7 @@ setup(
         'aio-pika==5.5.3',
         'uvloop==0.12.1',
         'python-rapidjson==0.7.0',
-        'structlog==19.1.0',
-        'pamqp==2.1.0'
+        'structlog==19.1.0'
+        # 'pamqp==2.1.0'
     ]
 )
