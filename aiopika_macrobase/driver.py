@@ -170,5 +170,7 @@ class AiopikaDriver(MacrobaseDriver):
             if connection is not None:
                 self.loop.run_until_complete(connection.close())
         finally:
+            if connection is not None:
+                self.loop.run_until_complete(connection.close())
             self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.after_server_stop))
             self.loop.close()

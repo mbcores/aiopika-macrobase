@@ -44,7 +44,7 @@ class ExternalException(AiopikaRPCException):
     """
 
     def __init__(self, exception: Exception):
-        super(ExternalException, self).__init__(str(exception))
+        super(ExternalException, self).__init__(str(exception.__repr__()))
 
 
 class ResponseContentException(AiopikaRPCException):

@@ -127,6 +127,9 @@ class AiopikaClient(object):
     def loop(self) -> AbstractEventLoop:
         return self._loop
 
+    def replace_loop(self, loop: AbstractEventLoop):
+        self._loop = loop
+
     @property
     def connection(self) -> Connection:
         return self._connection
@@ -139,10 +142,16 @@ class AiopikaClient(object):
     def exchange(self) -> Exchange:
         return self._exchange
 
+    @property
+    def is_closed(self) -> bool:
+        return self._connection.is_closed if self._connection is not None else True
+
     def get_nodename(self):
         return self._name
 
-    async def connect(self, exchange_name: str = 'rpc'):
+    async def connect(self, exchange_name: str = 'rpc', loop: AbstractEventLoop = None):
+        self._loop = loop or self._loop
+
         await self._reset_callback_queue()
         self._connection = await connect_robust(
             host=self._host,
@@ -150,8 +159,9 @@ class AiopikaClient(object):
             login=self._user,
             password=self._password,
             virtualhost=self._virtual_host,
-            loop=self._loop
+            loop=self.loop
         )
+        self._connection.loop
         self._channel = await self._connection.channel()
         self._exchange = await self._channel.declare_exchange(
             name=exchange_name,
@@ -301,7 +311,7 @@ class AiopikaClient(object):
         self._futures[result.correlation_id] = future
 
         try:
-            return await asyncio.wait_for(future, timeout=timeout, loop=self._loop)
+            return await asyncio.wait_for(future, timeout=timeout, loop=self.loop)
         except TimeoutError as e:
             raise MessageTimeoutException(result.queue, result.identifier, result.correlation_id)
         except AiopikaException as e:
