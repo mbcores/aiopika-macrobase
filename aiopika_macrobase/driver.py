@@ -140,6 +140,7 @@ class AiopikaDriver(MacrobaseDriver):
         virtual_host    = self.config.RABBITMQ_VHOST
         queue           = self.config.QUEUE_NAME
 
+        log.info(f'Connect to {host}:{port}/{virtual_host} ({user}:******)')
         self._connection = await connect_robust(
             host=host,
             port=port,
@@ -151,6 +152,7 @@ class AiopikaDriver(MacrobaseDriver):
         )
 
         self._channel = await self._connection.channel()
+
         self._queue = await self._channel.declare_queue(queue, durable=self.config.QUEUE_DURABLE, auto_delete=self.config.QUEUE_AUTO_DELETE)
 
         await self._queue.consume(self.process_message)
@@ -166,7 +168,6 @@ class AiopikaDriver(MacrobaseDriver):
 
     def run(self, *args, **kwargs):
         super().run(*args, **kwargs)
-
         uvloop.install()
 
         self.loop.run_until_complete(self._prepare())
