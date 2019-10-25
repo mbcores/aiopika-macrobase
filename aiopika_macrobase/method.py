@@ -4,7 +4,7 @@ from .exceptions import RoutingException
 
 class Method(object):
     """
-    Class for storage handler endpoint and his identifier. This is analog of HTTP Route class.
+    Class for storage handler endpoints and his identifier. This is analog of HTTP Route class.
     """
 
     def __init__(self, handler: AiopikaEndpoint, identifier: str):

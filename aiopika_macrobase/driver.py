@@ -1,8 +1,12 @@
 import asyncio
+import logging
+
 from typing import List, Dict, Type
 
 from macrobase_driver.driver import MacrobaseDriver
 from macrobase_driver.hook import HookHandler
+from macrobase_driver.logging import get_logging_config
+
 
 from .config import AiopikaDriverConfig
 from .hook import AiopikaHookNames
@@ -17,6 +21,7 @@ import uvloop
 from aio_pika import connect_robust, Connection, IncomingMessage, Channel, Queue
 
 from structlog import get_logger
+
 log = get_logger('AiopikaDriver')
 
 
@@ -32,7 +37,11 @@ class AiopikaDriver(MacrobaseDriver):
         self._channel: Channel = None
         self._queue: Queue = None
 
-        self.config = AiopikaDriverConfig()
+        config = kwargs.get('config', None)
+        if config is None:
+            config = AiopikaDriverConfig()
+        self.config = config
+
         self._hooks: Dict[AiopikaHookNames, List[HookHandler]] = {}
         self._methods: Dict[str, Method] = {}
 
@@ -131,6 +140,7 @@ class AiopikaDriver(MacrobaseDriver):
         virtual_host    = self.config.RABBITMQ_VHOST
         queue           = self.config.QUEUE_NAME
 
+        log.info(f'Connect to {host}:{port}/{virtual_host} ({user}:******)')
         self._connection = await connect_robust(
             host=host,
             port=port,
@@ -142,6 +152,7 @@ class AiopikaDriver(MacrobaseDriver):
         )
 
         self._channel = await self._connection.channel()
+
         self._queue = await self._channel.declare_queue(queue, durable=self.config.QUEUE_DURABLE, auto_delete=self.config.QUEUE_AUTO_DELETE)
 
         await self._queue.consume(self.process_message)
@@ -152,9 +163,11 @@ class AiopikaDriver(MacrobaseDriver):
         log.debug(f'Router <{self.router_cls.__name__}> initialize')
         self._router = self.router_cls(self._methods)
 
+        self._logging_config = get_logging_config(self.config)
+        logging.config.dictConfig(self._logging_config)
+
     def run(self, *args, **kwargs):
         super().run(*args, **kwargs)
-
         uvloop.install()
 
         self.loop.run_until_complete(self._prepare())
