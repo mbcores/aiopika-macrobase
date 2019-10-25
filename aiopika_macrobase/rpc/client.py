@@ -153,6 +153,8 @@ class AiopikaClient(object):
         self._loop = loop or self._loop
 
         await self._reset_callback_queue()
+
+        log.info(f'Connect to {self._host}:{self._port}/{self._virtual_host} ({self._user}:******)')
         self._connection = await connect_robust(
             host=self._host,
             port=self._port,
