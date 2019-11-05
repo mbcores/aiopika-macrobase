@@ -1,12 +1,12 @@
 import asyncio
-import logging
+import logging.config
 
 from typing import List, Dict, Type
 
 from macrobase_driver.driver import MacrobaseDriver
+from macrobase_driver.config import CommonConfig, AppConfig
 from macrobase_driver.hook import HookHandler
 from macrobase_driver.logging import get_logging_config
-
 
 from .config import AiopikaDriverConfig
 from .hook import AiopikaHookNames
@@ -37,28 +37,15 @@ class AiopikaDriver(MacrobaseDriver):
         self._channel: Channel = None
         self._queue: Queue = None
 
-        config = kwargs.get('config', None)
-        if config is None:
-            config = AiopikaDriverConfig()
-        self.config = config
-
         self._hooks: Dict[AiopikaHookNames, List[HookHandler]] = {}
         self._methods: Dict[str, Method] = {}
 
         self._router: Router = None
         self.router_cls: Type[Router] = HeaderMethodRouter
 
-    def update_config(self, config: AiopikaDriverConfig):
-        """
-        Update driver config
-
-        Args:
-            config (AiopikaDriverConfig): Driver config object
-
-        Returns:
-            None
-        """
-        self.config.update(config)
+    @property
+    def config(self) -> CommonConfig[AppConfig, AiopikaDriverConfig]:
+        return self._config
 
     def add_hook(self, name: AiopikaHookNames, handler):
         if name not in self._hooks:
@@ -73,7 +60,7 @@ class AiopikaDriver(MacrobaseDriver):
         self._methods.update({method.identifier: method for method in methods})
 
     async def process_message(self, message: IncomingMessage, *args, **kwargs):
-        async with message.process(ignore_processed=self.config.IGNORE_PROCESSED):
+        async with message.process(ignore_processed=self.config.driver.ignore_processed):
             log.info(f'Message <IncomingMessage correlation_id: {message.correlation_id}> received')
 
             await self._process_message(message)
@@ -83,11 +70,11 @@ class AiopikaDriver(MacrobaseDriver):
             result = await self._get_method_result(message, self._router.route(message))
         except MethodNotFoundException as e:
             log.debug(f'Ignore unknown method')
-            result = AiopikaResult(action=AiopikaResultAction.nack, requeue=self.config.REQUEUE_UNKNOWN)
+            result = AiopikaResult(action=AiopikaResultAction.nack, requeue=self.config.driver.requeue_unknown)
             await self._process_result(message, result, ignore_reply=True)
             return
         except Exception as e:
-            requeue = e.requeue if isinstance(e, AiopikaException) else self.config.REQUEUE_IF_FAILED
+            requeue = e.requeue if isinstance(e, AiopikaException) else self.config.driver.requeue_if_failed
 
             log.error(e)
             result = AiopikaResult(action=AiopikaResultAction.nack, requeue=requeue)
@@ -109,7 +96,7 @@ class AiopikaDriver(MacrobaseDriver):
 
     async def _process_result(self, message: IncomingMessage, result: AiopikaResult, ignore_reply: bool = False):
         if result.requeue:
-            await asyncio.sleep(self.config.REQUEUE_DELAY)
+            await asyncio.sleep(self.config.driver.requeue_delay)
 
         if result.action == AiopikaResultAction.ack:
             await message.ack(multiple=result.multiple)
@@ -133,12 +120,14 @@ class AiopikaDriver(MacrobaseDriver):
                 raise ResultDeliveryFailedException
 
     async def _serve(self, loop) -> Connection:
-        user            = self.config.RABBITMQ_USER
-        password        = self.config.RABBITMQ_PASS
-        host            = self.config.RABBITMQ_HOST
-        port            = self.config.RABBITMQ_PORT
-        virtual_host    = self.config.RABBITMQ_VHOST
-        queue           = self.config.QUEUE_NAME
+        log.debug(self.config.driver.logo)
+
+        host            = self.config.driver.rabbitmq.host
+        port            = self.config.driver.rabbitmq.port
+        user            = self.config.driver.rabbitmq.user
+        password        = self.config.driver.rabbitmq.password
+        virtual_host    = self.config.driver.rabbitmq.vhost
+        queue           = self.config.driver.queue.name
 
         log.info(f'Connect to {host}:{port}/{virtual_host} ({user}:******)')
         self._connection = await connect_robust(
@@ -153,7 +142,11 @@ class AiopikaDriver(MacrobaseDriver):
 
         self._channel = await self._connection.channel()
 
-        self._queue = await self._channel.declare_queue(queue, durable=self.config.QUEUE_DURABLE, auto_delete=self.config.QUEUE_AUTO_DELETE)
+        self._queue = await self._channel.declare_queue(
+            queue,
+            durable=self.config.driver.queue.durable,
+            auto_delete=self.config.driver.queue.auto_delete
+        )
 
         await self._queue.consume(self.process_message)
 
@@ -163,7 +156,7 @@ class AiopikaDriver(MacrobaseDriver):
         log.debug(f'Router <{self.router_cls.__name__}> initialize')
         self._router = self.router_cls(self._methods)
 
-        self._logging_config = get_logging_config(self.config)
+        self._logging_config = get_logging_config(self.config.app)
         logging.config.dictConfig(self._logging_config)
 
     def run(self, *args, **kwargs):
@@ -171,7 +164,7 @@ class AiopikaDriver(MacrobaseDriver):
         uvloop.install()
 
         self.loop.run_until_complete(self._prepare())
-        self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.before_server_start))
+        self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.before_server_start.value))
 
         connection: Connection = None
 
@@ -185,5 +178,5 @@ class AiopikaDriver(MacrobaseDriver):
         finally:
             if connection is not None:
                 self.loop.run_until_complete(connection.close())
-            self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.after_server_stop))
+            self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.after_server_stop.value))
             self.loop.close()

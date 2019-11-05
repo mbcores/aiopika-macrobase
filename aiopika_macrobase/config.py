@@ -1,32 +1,36 @@
-from macrobase_driver.config import DriverConfig
+from macrobase_driver.config import BaseConfig, DriverConfig
+
+
+class RabbitmqPropertyConfig(BaseConfig):
+    host: str = 'localhost'
+    port: int = 5672
+    user: str = 'rabbitmq'
+    password: str = 'test'
+    vhost: str = '/'
+
+
+class QueuePropertyConfig(BaseConfig):
+    name: str = 'queue'
+    auto_delete: bool = False
+    durable: bool = True
 
 
 class AiopikaDriverConfig(DriverConfig):
 
-    LOGO: str = """
+    logo: str = """
  _____       _
 |  __ \     (_)               
 | |  | |_ __ ___   _____ _ __ 
 | |  | | '__| \ \ / / _ \ '__|
 | |__| | |  | |\ V /  __/ |   
-|_____/|_|  |_| \_/ \___|_|aiopika
-"""
+|_____/|_|  |_| \_/ \___|_|aiopika"""
 
-    # AMQP Broker
-    RABBITMQ_USER: str = 'rabbitmq'
-    RABBITMQ_PASS: str = 'test'
-    RABBITMQ_HOST: str = 'localhost'
-    RABBITMQ_PORT: int = 5672
-    RABBITMQ_VHOST: str = '/'
-
-    # Queue
-    QUEUE_NAME: str = 'queue'
-    QUEUE_AUTO_DELETE: bool = False
-    QUEUE_DURABLE: bool     = True
+    rabbitmq: RabbitmqPropertyConfig = RabbitmqPropertyConfig()
+    queue: QueuePropertyConfig = QueuePropertyConfig()
 
     # Processing
-    IGNORE_PROCESSED: bool = True
-    REQUEUE_DELAY: int = 10
-    DEFAULT_RETRY_DELAY: int = 60
-    REQUEUE_UNKNOWN: bool = False
-    REQUEUE_IF_FAILED: bool = True  # TODO: Set `requeue` for all AiopikaException subclasses
+    ignore_processed: bool = True
+    requeue_delay: int = 10
+    default_retry_delay: int = 60
+    requeue_unknown: bool = False
+    requeue_if_failed: bool = True  # TODO: Set `requeue` for all AiopikaException subclasses

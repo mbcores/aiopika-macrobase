@@ -1,3 +1,4 @@
+import asyncio
 from .request import RPCResponse, RPCMessageType
 from .exceptions import ResponseContentException
 
@@ -32,7 +33,7 @@ class AiopikaRPCDriver(AiopikaDriver):
 
     async def _process_result(self, message: IncomingMessage, result: AiopikaResult, ignore_reply: bool = False):
         if result.requeue:
-            await asyncio.sleep(self.config.REQUEUE_DELAY)
+            await asyncio.sleep(self.config.driver.requeue_delay)
 
         if result.action == AiopikaResultAction.ack:
             await message.ack(multiple=result.multiple)
