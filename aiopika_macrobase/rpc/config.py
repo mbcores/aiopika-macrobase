@@ -1,9 +1,15 @@
-from ..config import AiopikaDriverConfig
+from ..config import AiopikaDriverConfig, QueuePropertyConfig
+
+
+class QueueRPCPropertyConfig(QueuePropertyConfig):
+    name: str = 'rpc_queue'
+    auto_delete: bool = False
+    durable: bool = True
 
 
 class AiopikaRPCDriverConfig(AiopikaDriverConfig):
 
-    LOGO: str = """
+    logo: str = """
  _____       _
 |  __ \     (_)               
 | |  | |_ __ ___   _____ _ __ 
@@ -12,9 +18,7 @@ class AiopikaRPCDriverConfig(AiopikaDriverConfig):
 |_____/|_|  |_| \_/ \___|_|aiopika_rpc
 """
 
+    queue: QueueRPCPropertyConfig = QueueRPCPropertyConfig()
 
-    # Queue
-    QUEUE_NAME: str = 'rpc_queue'
-
-    # RPC
-    DEFAULT_EXPIRE_CALL: int = 30
+    # Processing
+    default_expire_call: int = 30
