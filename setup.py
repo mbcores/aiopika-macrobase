@@ -10,11 +10,11 @@ setup(
     author_email='alexey.shagaleev@yandex.ru',
     description='Aio-pika driver for macrobase framework',
     install_requires=[
-        'macrobase-driver>=1.0.0',
+        'macrobase-driver>=1.0.0,<2.0.0',
         'aio-pika==5.5.3',
-        'uvloop==0.12.1',
-        'python-rapidjson==0.7.0',
-        'structlog==19.1.0'
+        'uvloop==0.14.0',
+        'python-rapidjson==0.8.0',
+        'structlog==19.2.0'
         # 'pamqp==2.1.0'
     ]
 )
