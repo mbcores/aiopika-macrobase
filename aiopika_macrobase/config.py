@@ -1,36 +1,38 @@
-from macrobase_driver.config import BaseConfig, DriverConfig
+from macrobase_driver.config import BaseConfig, DriverConfig, fields
 
 
 class RabbitmqPropertyConfig(BaseConfig):
-    host: str = 'localhost'
-    port: int = 5672
-    user: str = 'rabbitmq'
-    password: str = 'test'
-    vhost: str = '/'
+    host = fields.Str('localhost')
+    port = fields.Int(5672)
+
+    user        = fields.Str('rabbitmq')
+    password    = fields.Str('test')
+
+    vhost = fields.Str('/')
 
 
 class QueuePropertyConfig(BaseConfig):
-    name: str = 'queue'
-    auto_delete: bool = False
-    durable: bool = True
+    name        = fields.Str('queue')
+    auto_delete = fields.Bool(False)
+    durable     = fields.Bool(True)
 
 
 class AiopikaDriverConfig(DriverConfig):
 
-    logo: str = """
+    logo = fields.Str("""
  _____       _
 |  __ \     (_)               
 | |  | |_ __ ___   _____ _ __ 
 | |  | | '__| \ \ / / _ \ '__|
 | |__| | |  | |\ V /  __/ |   
-|_____/|_|  |_| \_/ \___|_|aiopika"""
+|_____/|_|  |_| \_/ \___|_|aiopika""")
 
-    rabbitmq: RabbitmqPropertyConfig = RabbitmqPropertyConfig()
-    queue: QueuePropertyConfig = QueuePropertyConfig()
+    rabbitmq: RabbitmqPropertyConfig    = fields.Nested(RabbitmqPropertyConfig)
+    queue: QueuePropertyConfig          = fields.Nested(QueuePropertyConfig)
 
     # Processing
-    ignore_processed: bool = True
-    requeue_delay: int = 10
-    default_retry_delay: int = 60
-    requeue_unknown: bool = False
-    requeue_if_failed: bool = True  # TODO: Set `requeue` for all AiopikaException subclasses
+    ignore_processed    = fields.Bool(True)
+    requeue_delay       = fields.Int(10)
+    default_retry_delay = fields.Int(60)
+    requeue_unknown     = fields.Bool(False)
+    requeue_if_failed   = fields.Bool(True)  # TODO: Set `requeue` for all AiopikaException subclasses
