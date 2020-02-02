@@ -1,4 +1,5 @@
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import logging.config
 
 from typing import List, Dict, Type
@@ -32,6 +33,8 @@ class AiopikaDriver(MacrobaseDriver):
 
         if self.name is None:
             self.name = 'Aiopika Driver'
+
+        self._tpool: ThreadPoolExecutor = None
 
         self._connection = None
         self._channel: Channel = None
@@ -153,6 +156,9 @@ class AiopikaDriver(MacrobaseDriver):
         return self._connection
 
     async def _prepare(self):
+        log.debug(f'Workers count {self.config.driver.workers} initialize')
+        self._tpool = ThreadPoolExecutor(max_workers=self.config.driver.workers)
+
         log.debug(f'Router <{self.router_cls.__name__}> initialize')
         self._router = self.router_cls(self._methods)
 
