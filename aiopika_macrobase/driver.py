@@ -1,7 +1,11 @@
+import os
 import asyncio
 import logging.config
 
-from typing import List, Dict, Type
+from signal import SIG_IGN, SIGINT, SIGTERM, Signals
+from signal import signal as signal_func
+
+from typing import List, Dict, Type, Callable, Awaitable
 
 from macrobase_driver.driver import MacrobaseDriver
 from macrobase_driver.config import CommonConfig, AppConfig
@@ -119,9 +123,14 @@ class AiopikaDriver(MacrobaseDriver):
             except Exception as e:
                 raise ResultDeliveryFailedException
 
-    async def _serve(self, loop) -> Connection:
-        log.debug(self.config.driver.logo)
+    async def _prepare(self):
+        log.debug(f'Router <{self.router_cls.__name__}> initialize')
+        self._router = self.router_cls(self._methods)
 
+        self._logging_config = get_logging_config(self.config.app)
+        logging.config.dictConfig(self._logging_config)
+
+    async def _consume(self) -> Connection:
         host            = self.config.driver.rabbitmq.host
         port            = self.config.driver.rabbitmq.port
         user            = self.config.driver.rabbitmq.user
@@ -129,7 +138,7 @@ class AiopikaDriver(MacrobaseDriver):
         virtual_host    = self.config.driver.rabbitmq.vhost
         queue           = self.config.driver.queue.name
 
-        log.info(f'Connect to {host}:{port}/{virtual_host} ({user}:******)')
+        log.info(f'<Aiopika worker: {os.getpid()}> Connect to {host}:{port}/{virtual_host} ({user}:******)')
         self._connection = await connect_robust(
             host=host,
             port=port,
@@ -137,7 +146,7 @@ class AiopikaDriver(MacrobaseDriver):
             password=password,
             virtualhost=virtual_host,
 
-            loop=loop
+            loop=self.loop
         )
 
         self._channel = await self._connection.channel()
@@ -152,31 +161,96 @@ class AiopikaDriver(MacrobaseDriver):
 
         return self._connection
 
-    async def _prepare(self):
-        log.debug(f'Router <{self.router_cls.__name__}> initialize')
-        self._router = self.router_cls(self._methods)
-
-        self._logging_config = get_logging_config(self.config.app)
-        logging.config.dictConfig(self._logging_config)
-
-    def run(self, *args, **kwargs):
-        super().run(*args, **kwargs)
+    def _run_single_mode(self, run_multiple: bool = False, *args, **kwargs):
         uvloop.install()
 
-        self.loop.run_until_complete(self._prepare())
-        self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.before_server_start.value))
+        pid = os.getpid()
+        log.info(f'<Aiopika worker: {pid}> Starting worker')
+
+        await_func = self.loop.run_until_complete
+
+        await_func(self._call_hooks(AiopikaHookNames.before_server_start.value))
 
         connection: Connection = None
 
         try:
-            connection = self.loop.run_until_complete(self._serve(self.loop))
+            connection = await_func(self._consume())
+
+            # Ignore SIGINT when run_multiple
+            if run_multiple:
+                signal_func(SIGINT, SIG_IGN)
+
+            # Register signals for graceful termination
+            _singals = (SIGTERM,) if run_multiple else (SIGINT, SIGTERM)
+            for _signal in _singals:
+                try:
+                    def fu():
+                        print('stop')
+                        self.loop.stop()
+
+                    self.loop.add_signal_handler(_signal, self.loop.stop)
+                except NotImplementedError:
+                    log.warning(
+                        "AiopikaDriver tried to use loop.add_signal_handler "
+                        "but it is not implemented on this platform."
+                    )
+
             self.loop.run_forever()
-        except Exception as e:
+        except BaseException as e:
             log.error(e)
-            if connection is not None:
-                self.loop.run_until_complete(connection.close())
+
+            if self._connection is not None:
+                await_func(connection.close())
         finally:
-            if connection is not None:
-                self.loop.run_until_complete(connection.close())
-            self.loop.run_until_complete(self._call_hooks(AiopikaHookNames.after_server_stop.value))
+            if self._connection is not None:
+                await_func(self._connection.close())
+            log.info(f'<Aiopika worker: {pid}> Stopping worker')
+
+            await_func(self._call_hooks(AiopikaHookNames.after_server_stop.value))
             self.loop.close()
+
+    def _run_multiple_mode(self, workers: int, *args, **kwargs):
+        import multiprocessing
+
+        log.debug(self.config.driver.logo)
+
+        processes = []
+
+        def sig_handler(signal, frame):
+            log.info("Received signal %s. Shutting down.", Signals(signal).name)
+            for process in processes:
+                os.kill(process.pid, SIGTERM)
+
+        signal_func(SIGINT, lambda s, f: sig_handler(s, f))
+        signal_func(SIGTERM, lambda s, f: sig_handler(s, f))
+
+        for _ in range(workers):
+            p = multiprocessing.Process(
+                target=self._run_single_mode,
+                daemon=True,
+                kwargs={
+                    'run_multiple': True,
+                }
+            )
+            p.start()
+
+            processes.append(p)
+
+        for process in processes:
+            process.join()
+
+        # the above processes will block this until they're stopped
+        for process in processes:
+            process.terminate()
+
+    def run(self, *args, **kwargs):
+        super().run(*args, **kwargs)
+
+        log.debug(self.config.driver.logo)
+
+        self.loop.run_until_complete(self._prepare())
+
+        if self.config.driver.workers == 1:
+            self._run_single_mode(*args, **kwargs)
+        else:
+            self._run_multiple_mode(self.config.driver.workers, *args, **kwargs)
