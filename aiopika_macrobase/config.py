@@ -27,7 +27,7 @@ class AiopikaDriverConfig(DriverConfig):
 | |__| | |  | |\ V /  __/ |   
 |_____/|_|  |_| \_/ \___|_|aiopika""")
 
-    workers = fields.Int(10)
+    workers = fields.Int(1)
 
     rabbitmq: RabbitmqPropertyConfig    = fields.Nested(RabbitmqPropertyConfig)
     queue: QueuePropertyConfig          = fields.Nested(QueuePropertyConfig)
