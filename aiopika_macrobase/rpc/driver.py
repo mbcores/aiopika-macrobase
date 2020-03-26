@@ -3,6 +3,7 @@ from .request import RPCResponse, RPCMessageType
 from .exceptions import ResponseContentException
 
 from ..driver import AiopikaDriver, IncomingMessage
+from ..method import Method
 from ..router import HeaderMethodRouter, IncomingRoutingFailedException
 from ..result import AiopikaResult, AiopikaResultAction
 from ..exceptions import PayloadTypeNotSupportedException, SerializeFailedException, ResultDeliveryFailedException
@@ -61,3 +62,8 @@ class AiopikaRPCDriver(AiopikaDriver):
                 )
             except Exception as e:
                 raise ResultDeliveryFailedException
+
+    async def _add_health_if_needed(self):
+        if self.config.driver.health_endpoint:
+            from .endpoint import HealthEndpoint
+            self.add_method(Method(HealthEndpoint(self.context, self.config), 'health'))

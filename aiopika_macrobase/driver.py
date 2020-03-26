@@ -130,6 +130,13 @@ class AiopikaDriver(MacrobaseDriver):
         self._logging_config = get_logging_config(self.config.app)
         logging.config.dictConfig(self._logging_config)
 
+        await self._add_health_if_needed()
+
+    async def _add_health_if_needed(self):
+        if self.config.driver.health_endpoint:
+            from .endpoint import HealthEndpoint
+            self.add_method(Method(HealthEndpoint(self.context, self.config), 'health'))
+
     async def _consume(self) -> Connection:
         host            = self.config.driver.rabbitmq.host
         port            = self.config.driver.rabbitmq.port
@@ -150,6 +157,7 @@ class AiopikaDriver(MacrobaseDriver):
         )
 
         self._channel = await self._connection.channel()
+        await self._channel.set_qos(prefetch_count=self.config.driver.prefetch_count)
 
         self._queue = await self._channel.declare_queue(
             queue,
