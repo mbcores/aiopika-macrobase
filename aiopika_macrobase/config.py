@@ -29,10 +29,13 @@ class AiopikaDriverConfig(DriverConfig):
 
     workers = fields.Int(1)
 
+    health_endpoint = fields.Bool(True)
+
     rabbitmq: RabbitmqPropertyConfig    = fields.Nested(RabbitmqPropertyConfig)
     queue: QueuePropertyConfig          = fields.Nested(QueuePropertyConfig)
 
     # Processing
+    prefetch_count      = fields.Int(10)
     ignore_processed    = fields.Bool(True)
     requeue_delay       = fields.Int(10)
     default_retry_delay = fields.Int(60)

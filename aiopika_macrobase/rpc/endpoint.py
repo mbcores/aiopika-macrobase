@@ -26,3 +26,10 @@ class AiopikaRPCEndpoint(AiopikaEndpoint):
 
     async def method(self, driver, request: RPCRequest, data, *args, **kwargs) -> RPCResponse:
         return RPCResponse()
+
+
+class HealthEndpoint(AiopikaRPCEndpoint):
+
+    async def method(self, driver, request: RPCRequest, data, *args, **kwargs) -> RPCResponse:
+        log.info('Health')
+        return RPCResponse(payload={'status': 'health', 'value': 'ok'})

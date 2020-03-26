@@ -39,3 +39,4 @@ class HealthEndpoint(AiopikaEndpoint):
 
     async def method(self, driver, message: IncomingMessage, data, *args, **kwargs):
         log.info('Health')
+        return AiopikaResult(payload={'status': 'health', 'value': 'ok'})
