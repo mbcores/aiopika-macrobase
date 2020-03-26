@@ -29,7 +29,7 @@ class AiopikaDriverConfig(DriverConfig):
 
     workers = fields.Int(1)
 
-    health_endpoint = fields.Bool(True)
+    health_endpoint = fields.Bool(False)
 
     rabbitmq: RabbitmqPropertyConfig    = fields.Nested(RabbitmqPropertyConfig)
     queue: QueuePropertyConfig          = fields.Nested(QueuePropertyConfig)
