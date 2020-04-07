@@ -7,6 +7,7 @@ from signal import signal as signal_func
 
 from typing import List, Dict, Type, Callable, Awaitable
 
+import sentry_sdk
 from macrobase_driver.driver import MacrobaseDriver
 from macrobase_driver.config import CommonConfig, AppConfig
 from macrobase_driver.hook import HookHandler
@@ -176,6 +177,12 @@ class AiopikaDriver(MacrobaseDriver):
         log.info(f'<Aiopika worker: {pid}> Starting worker')
 
         await_func = self.loop.run_until_complete
+
+        if self.config.driver.sentry_dsn:
+            sentry_sdk.init(
+                dsn=self.config.driver.sentry_dsn,
+                environment=self.config.driver.sentry_env
+            )
 
         await_func(self._call_hooks(AiopikaHookNames.before_server_start.value))
 
