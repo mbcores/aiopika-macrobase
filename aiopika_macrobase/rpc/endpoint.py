@@ -1,3 +1,5 @@
+from sentry_sdk import capture_exception
+
 from .request import RPCRequest, RPCResponse, RPCMessageType
 from ..endpoint import AiopikaEndpoint
 from ..result import AiopikaResult
@@ -20,6 +22,7 @@ class AiopikaRPCEndpoint(AiopikaEndpoint):
         try:
             response = await self.method(driver, request, request.payload, *args, **kwargs)
         except Exception as e:
+            capture_exception(e)
             response = RPCResponse(e, type=RPCMessageType.error)
 
         return response.get_result(message.correlation_id, identifier, message.expiration)

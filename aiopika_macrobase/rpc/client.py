@@ -319,4 +319,4 @@ class AiopikaClient(object):
         except AiopikaException as e:
             raise
         except Exception as e:
-            raise ExternalException(e)
+            raise

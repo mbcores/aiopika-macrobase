@@ -41,3 +41,6 @@ class AiopikaDriverConfig(DriverConfig):
     default_retry_delay = fields.Int(60)
     requeue_unknown     = fields.Bool(False)
     requeue_if_failed   = fields.Bool(True)  # TODO: Set `requeue` for all AiopikaException subclasses
+
+    sentry_dsn          = fields.Str('')
+    sentry_env          = fields.Str('dev')
