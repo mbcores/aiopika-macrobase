@@ -42,5 +42,5 @@ class AiopikaDriverConfig(DriverConfig):
     requeue_unknown     = fields.Bool(False)
     requeue_if_failed   = fields.Bool(True)  # TODO: Set `requeue` for all AiopikaException subclasses
 
-    sentry_dsn          = fields.Str('')
-    sentry_env          = fields.Str('dev')
+    sentry_dsn = fields.Str('', env_key='SENTRY_DSN')
+    sentry_env = fields.Str('', env_key='SENTRY_ENV')
