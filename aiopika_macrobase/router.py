@@ -15,7 +15,7 @@ class Router(ABC):
     def __init__(self, methods: Dict[str, Method]):
         self._methods: Dict[str, Method] = methods
 
-    def route(self, message: IncomingMessage) -> Method:
+    def get_method(self, message: IncomingMessage) -> Method:
         """
         Route by message
 

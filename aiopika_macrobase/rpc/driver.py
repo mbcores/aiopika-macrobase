@@ -25,7 +25,7 @@ class AiopikaRPCDriver(AiopikaDriver):
         method = None
 
         try:
-            method = self._router.route(message)
+            method = self._router.get_method(message)
             result = await self._get_method_result(message, method)
             ignore_reply = False
         except MethodNotFoundException as e:

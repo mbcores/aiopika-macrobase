@@ -1,3 +1,5 @@
+from sentry_sdk import capture_exception
+
 from .result import AiopikaResult
 
 from macrobase_driver.endpoint import Endpoint
@@ -13,7 +15,7 @@ class AiopikaEndpoint(Endpoint):
     Endpoint class for process incoming messages and ack/nack/reject message
     """
 
-    async def handle(self, driver, message: IncomingMessage, data, *args, **kwargs):
+    async def handle(self, driver, message: IncomingMessage, data, *args, **kwargs) -> AiopikaResult:
         """
         Handle method for process incoming message with identifier
 
@@ -27,7 +29,11 @@ class AiopikaEndpoint(Endpoint):
         Returns:
             AiopikaResult: Aiopika result action or None  (if return None then driver ack message).
         """
-        result = await self.method(driver, message, data, *args, **kwargs)
+        try:
+            result = await self.method(driver, message, data, *args, **kwargs)
+        except Exception as e:
+            capture_exception(e)
+            raise
 
         return result if result is not None else AiopikaResult()
 
