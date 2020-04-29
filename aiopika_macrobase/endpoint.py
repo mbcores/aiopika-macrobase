@@ -15,7 +15,7 @@ class AiopikaEndpoint(Endpoint):
     Endpoint class for process incoming messages and ack/nack/reject message
     """
 
-    async def handle(self, driver, message: IncomingMessage, data, *args, **kwargs):
+    async def handle(self, driver, message: IncomingMessage, data, *args, **kwargs) -> AiopikaResult:
         """
         Handle method for process incoming message with identifier
 

@@ -16,6 +16,19 @@ class AiopikaRPCEndpoint(AiopikaEndpoint):
     """
 
     async def handle(self, driver, message: IncomingMessage, data, *args, **kwargs) -> AiopikaResult:
+        """
+        Handle method for process incoming message
+
+        Args:
+            driver: Aiopika Macrobase driver
+            message (IncomingMessage): Incoming message from driver processing
+            data: Deserialized payload from Incoming Message
+            *args: Additional arguments
+            **kwargs: Additional arguments with keys
+
+        Returns:
+            AiopikaResult: Aiopika result action or None  (if return None then driver ack message).
+        """
         identifier = kwargs.get('identifier', None)
         request = RPCRequest(message, identifier, payload=data)
 
