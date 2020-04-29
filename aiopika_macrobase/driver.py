@@ -48,6 +48,8 @@ class AiopikaDriver(MacrobaseDriver):
         self._router: Router = None
         self.router_cls: Type[Router] = HeaderMethodRouter
 
+        self._setup_sentry()
+
     @property
     def config(self) -> CommonConfig[AppConfig, AiopikaDriverConfig]:
         return self._config
@@ -64,17 +66,27 @@ class AiopikaDriver(MacrobaseDriver):
     def add_methods(self, methods: List[Method]):
         self._methods.update({method.identifier: method for method in methods})
 
+    def _setup_sentry(self):
+        if self.config.driver.sentry_dsn is None:
+            return
+
+        sentry_sdk.init(
+            dsn=self.config.driver.sentry_dsn,
+            environment=self.config.driver.sentry_env
+        )
+
     async def process_message(self, message: IncomingMessage, *args, **kwargs):
         async with message.process(ignore_processed=self.config.driver.ignore_processed):
-            log.info(f'Message <IncomingMessage correlation_id: {message.correlation_id}> received')
-
             await self._process_message(message)
 
     async def _process_message(self, message: IncomingMessage):
         try:
-            result = await self._get_method_result(message, self._router.route(message))
+            method = self._router.get_method(message)
+            log.info(f'<IncomingMessage correlation_id: {message.correlation_id} method: {method}> processing')
+
+            result = await self._get_method_result(message, method)
         except MethodNotFoundException as e:
-            log.debug(f'Ignore unknown method')
+            log.error(f'<IncomingMessage correlation_id: {message.correlation_id} method: {method}> ignore unknown method')
             result = AiopikaResult(action=AiopikaResultAction.nack, requeue=self.config.driver.requeue_unknown)
             await self._process_result(message, result, ignore_reply=True)
             return
@@ -177,12 +189,6 @@ class AiopikaDriver(MacrobaseDriver):
         log.info(f'<Aiopika worker: {pid}> Starting worker')
 
         await_func = self.loop.run_until_complete
-
-        if self.config.driver.sentry_dsn:
-            sentry_sdk.init(
-                dsn=self.config.driver.sentry_dsn,
-                environment=self.config.driver.sentry_env
-            )
 
         await_func(self._call_hooks(AiopikaHookNames.before_server_start.value))
 
