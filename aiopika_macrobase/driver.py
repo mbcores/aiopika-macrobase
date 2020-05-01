@@ -48,8 +48,6 @@ class AiopikaDriver(MacrobaseDriver):
         self._router: Router = None
         self.router_cls: Type[Router] = HeaderMethodRouter
 
-        self._setup_sentry()
-
     @property
     def config(self) -> CommonConfig[AppConfig, AiopikaDriverConfig]:
         return self._config
@@ -189,6 +187,8 @@ class AiopikaDriver(MacrobaseDriver):
         log.info(f'<Aiopika worker: {pid}> Starting worker')
 
         await_func = self.loop.run_until_complete
+
+        self._setup_sentry()
 
         await_func(self._call_hooks(AiopikaHookNames.before_server_start.value))
 
