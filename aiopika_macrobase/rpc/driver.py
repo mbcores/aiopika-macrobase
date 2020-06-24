@@ -6,7 +6,8 @@ from ..driver import AiopikaDriver, IncomingMessage
 from ..method import Method
 from ..router import HeaderMethodRouter, IncomingRoutingFailedException
 from ..result import AiopikaResult, AiopikaResultAction
-from ..exceptions import PayloadTypeNotSupportedException, SerializeFailedException, ResultDeliveryFailedException
+from ..exceptions import PayloadTypeNotSupportedException, SerializeFailedException, ResultDeliveryFailedException, \
+    MethodNotFoundException
 
 from structlog import get_logger
 log = get_logger('AiopikaDriver')
@@ -26,11 +27,17 @@ class AiopikaRPCDriver(AiopikaDriver):
         try:
             method = self._router.get_method(message)
             result = await self._get_method_result(message, method)
+            ignore_reply = False
+        except MethodNotFoundException as e:
+            log.debug(f'Ignore unknown method')
+            result = AiopikaResult(action=AiopikaResultAction.nack, requeue=self.config.driver.requeue_unknown)
+            ignore_reply = True
         except Exception as e:
             log.error(e)
             result = RPCResponse(payload=e, type=RPCMessageType.error).get_result(message.correlation_id, method.identifier if method is not None else '', message.expiration)
+            ignore_reply = True
 
-        await self._process_result(message, result, ignore_reply=False)
+        await self._process_result(message, result, ignore_reply=ignore_reply)
 
     async def _process_result(self, message: IncomingMessage, result: AiopikaResult, ignore_reply: bool = False):
         if result.requeue:
