@@ -181,6 +181,11 @@ class AiopikaDriver(MacrobaseDriver):
         return self._connection
 
     def _run_single_mode(self, run_multiple: bool = False, *args, **kwargs):
+        # TODO: fix this crutch
+        if run_multiple:
+            self._loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self._loop)
+
         uvloop.install()
 
         pid = os.getpid()
