@@ -27,7 +27,7 @@ from aio_pika import connect_robust, Connection, IncomingMessage, Channel, Queue
 
 from structlog import get_logger
 
-log = get_logger('AiopikaDriver')
+log = get_logger('macrobase.aiopika')
 
 
 class AiopikaDriver(MacrobaseDriver):
@@ -180,47 +180,25 @@ class AiopikaDriver(MacrobaseDriver):
 
         return self._connection
 
-    def _run_single_mode(self, run_multiple: bool = False, *args, **kwargs):
-        # TODO: fix this crutch
-        if run_multiple:
-            self._loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self._loop)
+    def run(self, *args, **kwargs):
+        super().run(*args, **kwargs)
 
+        log.debug(self.config.driver.logo)
+
+        self.loop.run_until_complete(self._prepare())
         uvloop.install()
 
         pid = os.getpid()
         log.info(f'<Aiopika worker: {pid}> Starting worker')
-
-        await_func = self.loop.run_until_complete
-
         self._setup_sentry()
 
+        await_func = self.loop.run_until_complete
         await_func(self._call_hooks(AiopikaHookNames.before_server_start.value))
 
         connection: Connection = None
 
         try:
             connection = await_func(self._consume())
-
-            # Ignore SIGINT when run_multiple
-            if run_multiple:
-                signal_func(SIGINT, SIG_IGN)
-
-            # Register signals for graceful termination
-            _singals = (SIGTERM,) if run_multiple else (SIGINT, SIGTERM)
-            for _signal in _singals:
-                try:
-                    def fu():
-                        print('stop')
-                        self.loop.stop()
-
-                    self.loop.add_signal_handler(_signal, self.loop.stop)
-                except NotImplementedError:
-                    log.warning(
-                        "AiopikaDriver tried to use loop.add_signal_handler "
-                        "but it is not implemented on this platform."
-                    )
-
             self.loop.run_forever()
         except BaseException as e:
             log.error(e)
@@ -234,49 +212,3 @@ class AiopikaDriver(MacrobaseDriver):
 
             await_func(self._call_hooks(AiopikaHookNames.after_server_stop.value))
             self.loop.close()
-
-    def _run_multiple_mode(self, workers: int, *args, **kwargs):
-        import multiprocessing
-
-        log.debug(self.config.driver.logo)
-
-        processes = []
-
-        def sig_handler(signal, frame):
-            log.info("Received signal %s. Shutting down.", Signals(signal).name)
-            for process in processes:
-                os.kill(process.pid, SIGTERM)
-
-        signal_func(SIGINT, lambda s, f: sig_handler(s, f))
-        signal_func(SIGTERM, lambda s, f: sig_handler(s, f))
-
-        for _ in range(workers):
-            p = multiprocessing.Process(
-                target=self._run_single_mode,
-                daemon=True,
-                kwargs={
-                    'run_multiple': True,
-                }
-            )
-            p.start()
-
-            processes.append(p)
-
-        for process in processes:
-            process.join()
-
-        # the above processes will block this until they're stopped
-        for process in processes:
-            process.terminate()
-
-    def run(self, *args, **kwargs):
-        super().run(*args, **kwargs)
-
-        log.debug(self.config.driver.logo)
-
-        self.loop.run_until_complete(self._prepare())
-
-        if self.config.driver.workers == 1:
-            self._run_single_mode(*args, **kwargs)
-        else:
-            self._run_multiple_mode(self.config.driver.workers, *args, **kwargs)
