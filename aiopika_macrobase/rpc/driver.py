@@ -10,7 +10,7 @@ from ..exceptions import PayloadTypeNotSupportedException, SerializeFailedExcept
     MethodNotFoundException
 
 from structlog import get_logger
-log = get_logger('AiopikaDriver')
+log = get_logger('macrobase.aiopika_rpc')
 
 
 class AiopikaRPCDriver(AiopikaDriver):

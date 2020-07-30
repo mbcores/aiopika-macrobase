@@ -27,7 +27,7 @@ from aio_pika import connect_robust, Connection, IncomingMessage, Channel, Queue
 
 from structlog import get_logger
 
-log = get_logger('AiopikaDriver')
+log = get_logger('macrobase.aiopika')
 
 
 class AiopikaDriver(MacrobaseDriver):

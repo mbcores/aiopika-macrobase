@@ -5,7 +5,7 @@ from .serializers import serialize, SerializeFailedException, PayloadTypeNotSupp
 from aio_pika.message import Message, DateType, DeliveryMode
 
 from structlog import get_logger
-log = get_logger('AiopikaResult')
+log = get_logger('macrobase.aiopika.result')
 
 
 class AiopikaResultAction(IntEnum):
