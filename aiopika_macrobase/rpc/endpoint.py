@@ -7,7 +7,7 @@ from ..result import AiopikaResult
 from aio_pika import IncomingMessage
 
 from structlog import get_logger
-log = get_logger('AiopikaRPCEndpoint')
+log = get_logger('macrobase.aiopika.endpoint_rpc')
 
 
 class AiopikaRPCEndpoint(AiopikaEndpoint):
