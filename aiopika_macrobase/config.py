@@ -27,8 +27,6 @@ class AiopikaDriverConfig(DriverConfig):
 | |__| | |  | |\ V /  __/ |   
 |_____/|_|  |_| \_/ \___|_|aiopika""")
 
-    workers = fields.Int(1)
-
     health_endpoint = fields.Bool(False)
 
     rabbitmq: RabbitmqPropertyConfig    = fields.Nested(RabbitmqPropertyConfig)
