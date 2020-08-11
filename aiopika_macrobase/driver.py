@@ -78,6 +78,7 @@ class AiopikaDriver(MacrobaseDriver):
             await self._process_message(message)
 
     async def _process_message(self, message: IncomingMessage):
+        method = ''
         try:
             method = self._router.get_method(message)
             log.info(f'<IncomingMessage correlation_id: {message.correlation_id} method: {method}> processing')
