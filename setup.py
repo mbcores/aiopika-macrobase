@@ -14,7 +14,7 @@ setup(
         'aio-pika==5.5.3',
         'uvloop==0.14.0',
         'python-rapidjson==0.8.0',
-        'structlog==19.2.0',
+        'structlog>=20.2.0,<21.0.0',
         'sentry-sdk>=0.14.3',
         'aiocontextvars==0.2.2'
     ]
