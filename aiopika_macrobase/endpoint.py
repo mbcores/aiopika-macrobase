@@ -7,7 +7,7 @@ from macrobase_driver.endpoint import Endpoint
 from aio_pika import IncomingMessage
 
 from structlog import get_logger
-from .logging import set_request_id
+from macrobase_driver.logging import set_request_id
 log = get_logger('macrobase.aiopika.endpoint')
 
 

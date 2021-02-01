@@ -16,7 +16,7 @@ from aio_pika import connect_robust, Connection, Channel, IncomingMessage, Messa
 from aio_pika.message import DeliveredMessage
 
 from logging import getLogger
-from ..logging import get_request_id
+from macrobase_driver.logging import get_request_id
 log = getLogger('AiopikaClient')
 
 
