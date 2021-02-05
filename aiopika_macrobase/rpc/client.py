@@ -16,6 +16,7 @@ from aio_pika import connect_robust, Connection, Channel, IncomingMessage, Messa
 from aio_pika.message import DeliveredMessage
 
 from logging import getLogger
+from macrobase_driver.logging import get_request_id
 log = getLogger('AiopikaClient')
 
 
@@ -240,6 +241,7 @@ class AiopikaClient(object):
             headers={
                 'lang': 'py',
                 'method': identifier,
+                'x-cross-request-id': get_request_id(),
                 # 'id': correlation_id,
                 # 'shadow': shadow,
                 # 'countdown': countdown,
