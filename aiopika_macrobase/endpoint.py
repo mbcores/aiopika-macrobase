@@ -7,6 +7,7 @@ from macrobase_driver.endpoint import Endpoint
 from aio_pika import IncomingMessage
 
 from structlog import get_logger
+from macrobase_driver.logging import set_request_id
 log = get_logger('macrobase.aiopika.endpoint')
 
 
@@ -30,6 +31,7 @@ class AiopikaEndpoint(Endpoint):
             AiopikaResult: Aiopika result action or None  (if return None then driver ack message).
         """
         try:
+            set_request_id(message.headers.get('x-cross-request-id'))
             result = await self.method(driver, message, data, *args, **kwargs)
         except Exception as e:
             capture_exception(e)
