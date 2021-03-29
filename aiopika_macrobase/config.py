@@ -42,3 +42,4 @@ class AiopikaDriverConfig(DriverConfig):
 
     sentry_dsn = fields.Str('', env_key='SENTRY_DSN')
     sentry_env = fields.Str('', env_key='SENTRY_ENV')
+    version = fields.Str('', env_key='VERSION')

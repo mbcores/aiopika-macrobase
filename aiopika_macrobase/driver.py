@@ -70,7 +70,8 @@ class AiopikaDriver(MacrobaseDriver):
 
         sentry_sdk.init(
             dsn=self.config.driver.sentry_dsn,
-            environment=self.config.driver.sentry_env
+            environment=self.config.driver.sentry_env,
+            release=self.config.driver.version,
         )
 
     async def process_message(self, message: IncomingMessage, *args, **kwargs):
