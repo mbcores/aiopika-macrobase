@@ -36,6 +36,8 @@ class AiopikaEndpoint(Endpoint):
         except Exception as e:
             capture_exception(e)
             raise
+        finally:
+            set_request_id()
 
         return result if result is not None else AiopikaResult()
 

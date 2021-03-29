@@ -85,7 +85,7 @@ class AiopikaDriver(MacrobaseDriver):
 
             result = await self._get_method_result(message, method)
         except MethodNotFoundException as e:
-            log.error(f'<IncomingMessage correlation_id: {message.correlation_id} method: {method}> ignore unknown method')
+            log.warning(f'<IncomingMessage correlation_id: {message.correlation_id} method: {method}> ignore unknown method')
             result = AiopikaResult(action=AiopikaResultAction.nack, requeue=self.config.driver.requeue_unknown)
             await self._process_result(message, result, ignore_reply=True)
             return
