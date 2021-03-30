@@ -62,7 +62,7 @@ class ExceptionSerializer(Serializer):
         return pickle.loads(raw)
 
 
-_serializers: List[Serializer] = [StringSerializer, JSONSerializer, ExceptionSerializer]
+_serializers: List[Type[Serializer]] = [StringSerializer, JSONSerializer, ExceptionSerializer]
 deserializers: Dict[str, Serializer] = {s.content_type: s for s in _serializers}
 
 

@@ -164,7 +164,7 @@ class AiopikaClient(object):
             virtualhost=self._virtual_host,
             loop=self.loop
         )
-        self._connection.loop
+
         self._channel = await self._connection.channel()
         self._exchange = await self._channel.declare_exchange(
             name=exchange_name,
