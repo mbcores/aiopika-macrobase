@@ -1,3 +1,4 @@
+from macrobase_driver.logging import set_request_id
 from sentry_sdk import capture_exception
 
 from .request import RPCRequest, RPCResponse, RPCMessageType
@@ -33,6 +34,7 @@ class AiopikaRPCEndpoint(AiopikaEndpoint):
         request = RPCRequest(message, identifier, payload=data)
 
         try:
+            set_request_id(message.headers.get('x-cross-request-id'))
             response = await self.method(driver, request, request.payload, *args, **kwargs)
         except Exception as e:
             capture_exception(e)
