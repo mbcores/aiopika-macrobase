@@ -72,6 +72,8 @@ class AiopikaDriver(MacrobaseDriver):
             dsn=self.config.driver.sentry_dsn,
             environment=self.config.driver.sentry_env,
             release=self.config.driver.version,
+            ignore_errors=self.config.driver.sentry_ignore_errors,
+            **self.config.driver.sentry_kwargs,
         )
 
     async def process_message(self, message: IncomingMessage, *args, **kwargs):
